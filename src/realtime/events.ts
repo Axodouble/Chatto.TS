@@ -24,13 +24,13 @@ export function mapFrameToEvent(frame: ServerFrame): SdkEvent | null {
   if (env.reaction_added != null) {
     return {
       kind: 'reactionAdd',
-      event: { roomId: env.reaction_added.room_id, messageEventId: env.reaction_added.message_event_id, emoji: env.reaction_added.emoji, actorId: env.reaction_added.actor_id },
+      event: { roomId: env.reaction_added.room_id, messageEventId: env.reaction_added.message_event_id, emoji: env.reaction_added.emoji, actorId: env.actor_id || undefined },
     }
   }
   if (env.reaction_removed != null) {
     return {
       kind: 'reactionRemove',
-      event: { roomId: env.reaction_removed.room_id, messageEventId: env.reaction_removed.message_event_id, emoji: env.reaction_removed.emoji, actorId: env.reaction_removed.actor_id },
+      event: { roomId: env.reaction_removed.room_id, messageEventId: env.reaction_removed.message_event_id, emoji: env.reaction_removed.emoji, actorId: env.actor_id || undefined },
     }
   }
   return null

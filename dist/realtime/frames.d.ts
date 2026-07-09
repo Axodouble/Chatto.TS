@@ -5,6 +5,7 @@ export interface EventEnvelopePayload {
     message_posted?: {
         room_id: string;
         message_event_id: string;
+        thread_root_event_id?: string;
     };
     message_edited?: {
         room_id: string;
@@ -13,42 +14,50 @@ export interface EventEnvelopePayload {
     message_retracted?: {
         room_id: string;
         message_event_id: string;
+        reason?: string;
     };
     reaction_added?: {
         room_id: string;
         message_event_id: string;
         emoji: string;
-        actor_id: string;
     };
     reaction_removed?: {
         room_id: string;
         message_event_id: string;
         emoji: string;
-        actor_id: string;
     };
 }
 export interface ServerFrame {
     hello?: {
+        protocol_version: number;
+        server_version: string;
         heartbeat_interval_seconds: number;
+        capabilities: string[];
     };
     subscribed?: Record<string, never>;
     event?: EventEnvelopePayload;
-    heartbeat?: Record<string, never>;
+    heartbeat?: {
+        id: string;
+        created_at: string;
+    };
     pong?: {
         nonce: string;
     };
     error?: {
-        fatal: boolean;
+        code: string;
         message: string;
+        fatal: boolean;
     };
     close?: {
+        code: string;
+        message: string;
         reconnect: boolean;
         retry_after_ms: number;
-        message: string;
     };
 }
 export type ClientFrame = {
     hello: {
+        protocol_version: number;
         bearer_token: string;
     };
 } | {

@@ -7,19 +7,19 @@ function buildServerFrameBuffer(payload: object): Buffer {
   const root = protobuf.parse(`
     syntax = "proto3";
     message RealtimeServerFrame {
-      oneof payload {
+      oneof frame {
         RealtimeServerHello hello = 1;
         RealtimeSubscribed subscribed = 2;
         RealtimeEventEnvelope event = 3;
-        RealtimeClose close = 7;
-        RealtimeError error = 6;
+        RealtimeError error = 5;
+        RealtimeClose close = 6;
       }
     }
-    message RealtimeServerHello { int32 heartbeat_interval_seconds = 1; }
+    message RealtimeServerHello { uint32 heartbeat_interval_seconds = 4; }
     message RealtimeSubscribed {}
     message RealtimeEventEnvelope { string id = 1; string created_at = 2; string actor_id = 3; }
-    message RealtimeClose { bool reconnect = 1; int32 retry_after_ms = 2; string message = 3; }
-    message RealtimeError { bool fatal = 1; string message = 2; }
+    message RealtimeClose { string code = 1; string message = 2; bool reconnect = 3; int32 retry_after_ms = 4; }
+    message RealtimeError { string code = 1; string message = 2; bool fatal = 3; }
   `, { keepCase: true }).root
   const ServerFrame = root.lookupType('RealtimeServerFrame')
   return Buffer.from(ServerFrame.encode(ServerFrame.create(payload)).finish())
@@ -62,9 +62,9 @@ describe('RealtimeConnection', () => {
     const ClientFrameType = protobuf.parse(`
       syntax = "proto3";
       message RealtimeClientFrame {
-        oneof payload { RealtimeClientHello hello = 1; RealtimeSubscribeEvents subscribe_events = 2; }
+        oneof frame { RealtimeClientHello hello = 1; RealtimeSubscribeEvents subscribe_events = 2; }
       }
-      message RealtimeClientHello { string bearer_token = 1; }
+      message RealtimeClientHello { uint32 protocol_version = 1; string bearer_token = 2; }
       message RealtimeSubscribeEvents {}
     `, { keepCase: true }).root.lookupType('RealtimeClientFrame')
     const helloDecoded = ClientFrameType.toObject(

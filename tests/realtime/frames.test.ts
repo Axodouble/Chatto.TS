@@ -3,7 +3,7 @@ import { encodeClientFrame, decodeServerFrame } from '../../src/realtime/frames'
 
 describe('encodeClientFrame / decodeServerFrame', () => {
   it('round-trips a ClientHello frame', () => {
-    const encoded = encodeClientFrame({ hello: { bearer_token: 'mytoken' } })
+    const encoded = encodeClientFrame({ hello: { protocol_version: 1, bearer_token: 'mytoken' } })
     expect(encoded).toBeInstanceOf(Buffer)
     expect(encoded.length).toBeGreaterThan(0)
   })
@@ -28,7 +28,7 @@ describe('encodeClientFrame / decodeServerFrame', () => {
           ServerHello hello = 1;
         }
       }
-      message ServerHello { int32 heartbeat_interval_seconds = 1; }
+      message ServerHello { uint32 heartbeat_interval_seconds = 4; }
     `, { keepCase: true }).root
     const ServerFrame = root.lookupType('RealtimeServerFrame')
     const buf = Buffer.from(

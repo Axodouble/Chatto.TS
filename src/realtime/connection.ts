@@ -26,7 +26,7 @@ export class RealtimeConnection extends EventEmitter<RealtimeConnectionEvents> {
       ;(this.ws as WebSocket & { binaryType: string }).binaryType = 'nodebuffer'
 
       this.ws.once('open', () => {
-        this.send({ hello: { bearer_token: this.token } })
+        this.send({ hello: { protocol_version: 1, bearer_token: this.token } })
       })
 
       this.ws.on('message', (data: Buffer) => {
@@ -52,8 +52,9 @@ export class RealtimeConnection extends EventEmitter<RealtimeConnectionEvents> {
           return
         }
 
-        if (frame.error != null && frame.error.fatal) {
-          reject(new Error(frame.error.message))
+        if (frame.error != null) {
+          if (frame.error.fatal) reject(new Error(`${frame.error.code}: ${frame.error.message}`))
+          this.emit('error', new Error(`${frame.error.code}: ${frame.error.message}`))
           return
         }
 
