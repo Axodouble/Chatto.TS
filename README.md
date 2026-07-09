@@ -6,6 +6,11 @@ A very early sketch of a Chatto Typescript library to interface with a Chatto in
 
 The API will be built upon the documentation that lives at [docs.chatto.run](https://docs.chatto.run/reference/connectrpc-api/)
 
+## Todo
+
+- [ ] Basic message functionality
+- [ ] User endpoints to get user data
+
 ## Release
 
 ```bash
