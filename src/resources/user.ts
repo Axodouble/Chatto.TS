@@ -1,0 +1,45 @@
+import type { DirectoryMemberData } from '../types'
+import type { RestClient } from '../rest/client'
+import { GetUserResponseSchema } from '../schemas/user'
+
+export class User {
+  readonly id: string
+  readonly login: string
+  readonly displayName: string
+  readonly deleted: boolean
+  readonly avatarUrl: string | undefined
+  readonly presenceStatus: string
+  readonly customStatus: { emoji: string; text: string; expiresAt?: string } | undefined
+  readonly roles: string[]
+  readonly createdAt: string | undefined
+
+  constructor(data: DirectoryMemberData) {
+    this.id = data.user.id
+    this.login = data.user.login
+    this.displayName = data.user.displayName
+    this.deleted = data.user.deleted
+    this.avatarUrl = data.user.avatarUrl
+    this.presenceStatus = data.user.presenceStatus
+    this.customStatus = data.user.customStatus
+    this.roles = data.roles
+    this.createdAt = data.createdAt
+  }
+}
+
+export class PartialUser {
+  readonly id: string
+
+  constructor(id: string, private readonly rest: RestClient) {
+    this.id = id
+  }
+
+  async fetch(): Promise<User> {
+    const res = await this.rest.post(
+      'chatto.api.v1.UserService',
+      'GetUser',
+      { userId: this.id },
+      GetUserResponseSchema,
+    )
+    return new User(res.user)
+  }
+}

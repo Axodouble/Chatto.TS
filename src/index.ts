@@ -4,6 +4,7 @@ export { loginWithPassword } from './auth/integrated'
 export { ChattoApiError, ChattoParseError } from './errors'
 export type { Message } from './resources/message'
 export type { Room } from './resources/room'
+export type { User, PartialUser } from './resources/user'
 export type { LoginResult } from './auth/integrated'
 export type {
   MessageData,
@@ -13,4 +14,6 @@ export type {
   MessageDeleteEvent,
   ReactionEvent,
   ChattoClientOptions,
+  UserData,
+  DirectoryMemberData,
 } from './types'

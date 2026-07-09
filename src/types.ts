@@ -7,6 +7,7 @@ import type {
 } from './schemas/message'
 import type { RoomSchema } from './schemas/room'
 import type { MessageDeleteEventSchema, ReactionEventSchema } from './schemas/realtime'
+import type { UserSchema, DirectoryMemberSchema } from './schemas/user'
 
 export type MessageData = z.infer<typeof MessageSchema>
 export type MessageReaction = z.infer<typeof MessageReactionSchema>
@@ -15,6 +16,8 @@ export type UpdateMessageInput = z.infer<typeof UpdateMessageInputSchema>
 export type RoomData = z.infer<typeof RoomSchema>
 export type MessageDeleteEvent = z.infer<typeof MessageDeleteEventSchema>
 export type ReactionEvent = z.infer<typeof ReactionEventSchema>
+export type UserData = z.infer<typeof UserSchema>
+export type DirectoryMemberData = z.infer<typeof DirectoryMemberSchema>
 
 export interface ChattoClientOptions {
   baseUrl: string

@@ -13,19 +13,19 @@ declare const LoginResponseSchema: z.ZodObject<{
         login: string;
     }>;
 }, "strip", z.ZodTypeAny, {
-    success: boolean;
-    token: string;
     user: {
         id: string;
         login: string;
     };
+    success: boolean;
+    token: string;
 }, {
-    success: boolean;
-    token: string;
     user: {
         id: string;
         login: string;
     };
+    success: boolean;
+    token: string;
 }>;
 export type LoginResult = z.infer<typeof LoginResponseSchema>;
 export declare function loginWithPassword(baseUrl: string, login: string, password: string): Promise<LoginResult>;

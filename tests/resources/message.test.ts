@@ -1,5 +1,6 @@
 import { describe, it, expect, mock } from 'bun:test'
 import { Message } from '../../src/resources/message'
+import { PartialUser } from '../../src/resources/user'
 import { MessageBuilder } from '../../src/builders/message'
 
 const validMessageData = {
@@ -23,6 +24,12 @@ describe('Message', () => {
     expect(msg.body).toBe('Hello')
     expect(msg.actorId).toBe('user_1')
     expect(msg.createdAt).toBe('2026-07-09T10:00:00Z')
+  })
+
+  it('exposes author as PartialUser with matching id', () => {
+    const msg = new Message(validMessageData, makeRestMock(null) as any)
+    expect(msg.author).toBeInstanceOf(PartialUser)
+    expect(msg.author.id).toBe('user_1')
   })
 
   describe('.edit()', () => {

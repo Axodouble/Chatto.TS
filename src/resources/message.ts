@@ -7,12 +7,14 @@ import {
   AddReactionResponseSchema,
   RemoveReactionResponseSchema,
 } from '../schemas/message'
+import { PartialUser } from './user'
 
 export class Message {
   readonly id: string
   readonly roomId: string
   readonly body: string | undefined
   readonly actorId: string
+  readonly author: PartialUser
   readonly createdAt: string
   readonly updatedAt: string | undefined
 
@@ -21,6 +23,7 @@ export class Message {
     this.roomId = data.roomId
     this.body = data.body
     this.actorId = data.actorId
+    this.author = new PartialUser(data.actorId, rest)
     this.createdAt = data.createdAt
     this.updatedAt = data.updatedAt
   }

@@ -2,12 +2,14 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Message = void 0;
 const message_1 = require("../schemas/message");
+const user_1 = require("./user");
 class Message {
     rest;
     id;
     roomId;
     body;
     actorId;
+    author;
     createdAt;
     updatedAt;
     constructor(data, rest) {
@@ -16,6 +18,7 @@ class Message {
         this.roomId = data.roomId;
         this.body = data.body;
         this.actorId = data.actorId;
+        this.author = new user_1.PartialUser(data.actorId, rest);
         this.createdAt = data.createdAt;
         this.updatedAt = data.updatedAt;
     }
