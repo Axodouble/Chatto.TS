@@ -1,6 +1,7 @@
-import { describe, it, expect, mock, afterEach } from 'bun:test'
+import { describe, it, expect } from 'bun:test'
 import { EventEmitter } from 'events'
 import protobuf from 'protobufjs'
+import { RealtimeConnection } from '../../src/realtime/connection'
 
 function buildServerFrameBuffer(payload: object): Buffer {
   const root = protobuf.parse(`
@@ -32,46 +33,31 @@ class MockWs extends EventEmitter {
   close() { this.readyState = 3 }
 }
 
-let currentMockWs: MockWs
+function makeConn(mockWs: MockWs): RealtimeConnection {
+  return new RealtimeConnection('ws://chat.example.com/api/realtime', 'mytoken', () => mockWs as any)
+}
 
-const WsMockConstructor = mock(() => {
-  currentMockWs = new MockWs()
-  return currentMockWs
-})
-
-const WsMockClass = Object.assign(WsMockConstructor, { OPEN: 1, CLOSED: 3 })
-
-mock.module('ws', () => ({
-  default: WsMockClass,
-}))
-
-const { RealtimeConnection } = require('../../src/realtime/connection') as typeof import('../../src/realtime/connection')
-
-afterEach(() => {
-  WsMockConstructor.mockClear()
-})
+function handshake(mockWs: MockWs) {
+  setImmediate(() => {
+    mockWs.emit('open')
+    setImmediate(() => {
+      mockWs.emit('message', buildServerFrameBuffer({ hello: { heartbeat_interval_seconds: 60 } }))
+      setImmediate(() => {
+        mockWs.emit('message', buildServerFrameBuffer({ subscribed: {} }))
+      })
+    })
+  })
+}
 
 describe('RealtimeConnection', () => {
   it('sends ClientHello on open, then SubscribeEvents after ServerHello, resolves on Subscribed', async () => {
-    WsMockConstructor.mockImplementation(() => {
-      const ws = new MockWs()
-      currentMockWs = ws
-      setImmediate(() => {
-        ws.emit('open')
-        setImmediate(() => {
-          ws.emit('message', buildServerFrameBuffer({ hello: { heartbeat_interval_seconds: 60 } }))
-          setImmediate(() => {
-            ws.emit('message', buildServerFrameBuffer({ subscribed: {} }))
-          })
-        })
-      })
-      return ws
-    })
+    const mockWs = new MockWs()
+    handshake(mockWs)
 
-    const conn = new RealtimeConnection('ws://chat.example.com/api/realtime', 'mytoken')
+    const conn = makeConn(mockWs)
     await conn.connect()
 
-    expect(currentMockWs.sent).toHaveLength(2)
+    expect(mockWs.sent).toHaveLength(2)
 
     const ClientFrameType = protobuf.parse(`
       syntax = "proto3";
@@ -82,7 +68,7 @@ describe('RealtimeConnection', () => {
       message RealtimeSubscribeEvents {}
     `, { keepCase: true }).root.lookupType('RealtimeClientFrame')
     const helloDecoded = ClientFrameType.toObject(
-      ClientFrameType.decode(currentMockWs.sent[0]),
+      ClientFrameType.decode(mockWs.sent[0]),
       { keepCase: true },
     )
     expect((helloDecoded as any).hello?.bearer_token).toBe('mytoken')
@@ -91,28 +77,16 @@ describe('RealtimeConnection', () => {
   })
 
   it('emits frame event for event envelopes', async () => {
-    WsMockConstructor.mockImplementation(() => {
-      const ws = new MockWs()
-      currentMockWs = ws
-      setImmediate(() => {
-        ws.emit('open')
-        setImmediate(() => {
-          ws.emit('message', buildServerFrameBuffer({ hello: { heartbeat_interval_seconds: 60 } }))
-          setImmediate(() => {
-            ws.emit('message', buildServerFrameBuffer({ subscribed: {} }))
-          })
-        })
-      })
-      return ws
-    })
+    const mockWs = new MockWs()
+    handshake(mockWs)
 
-    const conn = new RealtimeConnection('ws://chat.example.com/api/realtime', 'mytoken')
+    const conn = makeConn(mockWs)
     await conn.connect()
 
     const frames: unknown[] = []
     conn.on('frame', f => frames.push(f))
 
-    currentMockWs.emit('message', buildServerFrameBuffer({
+    mockWs.emit('message', buildServerFrameBuffer({
       event: { id: 'env_1', created_at: '2026-07-09T10:00:00Z', actor_id: 'user_1' },
     }))
 
@@ -121,28 +95,16 @@ describe('RealtimeConnection', () => {
   })
 
   it('emits close with reconnect=false on ws close event', async () => {
-    WsMockConstructor.mockImplementation(() => {
-      const ws = new MockWs()
-      currentMockWs = ws
-      setImmediate(() => {
-        ws.emit('open')
-        setImmediate(() => {
-          ws.emit('message', buildServerFrameBuffer({ hello: { heartbeat_interval_seconds: 60 } }))
-          setImmediate(() => {
-            ws.emit('message', buildServerFrameBuffer({ subscribed: {} }))
-          })
-        })
-      })
-      return ws
-    })
+    const mockWs = new MockWs()
+    handshake(mockWs)
 
-    const conn = new RealtimeConnection('ws://chat.example.com/api/realtime', 'mytoken')
+    const conn = makeConn(mockWs)
     await conn.connect()
 
     const closes: [boolean, number][] = []
     conn.on('close', (reconnect, ms) => closes.push([reconnect, ms]))
 
-    currentMockWs.emit('close')
+    mockWs.emit('close')
     expect(closes).toEqual([[false, 0]])
   })
 })

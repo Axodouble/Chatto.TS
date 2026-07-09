@@ -15,13 +15,14 @@ export class RealtimeConnection extends EventEmitter<RealtimeConnectionEvents> {
   constructor(
     private readonly wsUrl: string,
     private readonly token: string,
+    private readonly wsFactory: (url: string) => WebSocket = url => new WebSocket(url),
   ) {
     super()
   }
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.ws = new WebSocket(this.wsUrl)
+      this.ws = this.wsFactory(this.wsUrl)
       ;(this.ws as WebSocket & { binaryType: string }).binaryType = 'nodebuffer'
 
       this.ws.once('open', () => {

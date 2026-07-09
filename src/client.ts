@@ -25,11 +25,16 @@ export class ChattoClient extends EventEmitter<ClientEventMap> {
   private readonly rest: RestClient
   private readonly realtime: RealtimeConnection
 
-  constructor(options: ChattoClientOptions) {
+  constructor(
+    options: ChattoClientOptions,
+    realtimeFactory?: (wsUrl: string, token: string) => RealtimeConnection,
+  ) {
     super()
     const wsUrl = options.baseUrl.replace(/^https?/, m => (m === 'https' ? 'wss' : 'ws')) + '/api/realtime'
     this.rest = new RestClient(options.baseUrl, options.token)
-    this.realtime = new RealtimeConnection(wsUrl, options.token)
+    this.realtime = realtimeFactory
+      ? realtimeFactory(wsUrl, options.token)
+      : new RealtimeConnection(wsUrl, options.token)
     this.rooms = new RoomManager(this.rest)
     this.messages = new MessageManager(this.rest)
     this.wireRealtime()

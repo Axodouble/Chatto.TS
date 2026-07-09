@@ -1,5 +1,11 @@
-import protobuf from 'protobufjs'
-
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.encodeClientFrame = encodeClientFrame;
+exports.decodeServerFrame = decodeServerFrame;
+const protobufjs_1 = __importDefault(require("protobufjs"));
 const PROTO_SCHEMA = `
 syntax = "proto3";
 package chatto.realtime.v1;
@@ -55,50 +61,21 @@ message RealtimeHeartbeat {}
 message RealtimePong { string nonce = 1; }
 message RealtimeError { bool fatal = 1; string message = 2; }
 message RealtimeClose { bool reconnect = 1; int32 retry_after_ms = 2; string message = 3; }
-`
-
-let _root: protobuf.Root | null = null
-
-function getRoot(): protobuf.Root {
-  if (_root == null) {
-    _root = protobuf.parse(PROTO_SCHEMA, { keepCase: true }).root
-  }
-  return _root
+`;
+let _root = null;
+function getRoot() {
+    if (_root == null) {
+        _root = protobufjs_1.default.parse(PROTO_SCHEMA, { keepCase: true }).root;
+    }
+    return _root;
 }
-
-export interface EventEnvelopePayload {
-  id: string
-  created_at: string
-  actor_id: string
-  message_posted?: { room_id: string; message_event_id: string }
-  message_edited?: { room_id: string; message_event_id: string }
-  message_retracted?: { room_id: string; message_event_id: string }
-  reaction_added?: { room_id: string; message_event_id: string; emoji: string; actor_id: string }
-  reaction_removed?: { room_id: string; message_event_id: string; emoji: string; actor_id: string }
+function encodeClientFrame(frame) {
+    const ClientFrame = getRoot().lookupType('chatto.realtime.v1.RealtimeClientFrame');
+    return Buffer.from(ClientFrame.encode(ClientFrame.create(frame)).finish());
 }
-
-export interface ServerFrame {
-  hello?: { heartbeat_interval_seconds: number }
-  subscribed?: Record<string, never>
-  event?: EventEnvelopePayload
-  heartbeat?: Record<string, never>
-  pong?: { nonce: string }
-  error?: { fatal: boolean; message: string }
-  close?: { reconnect: boolean; retry_after_ms: number; message: string }
+function decodeServerFrame(buffer) {
+    const ServerFrame = getRoot().lookupType('chatto.realtime.v1.RealtimeServerFrame');
+    const decoded = ServerFrame.decode(buffer);
+    return ServerFrame.toObject(decoded, { keepCase: true });
 }
-
-export type ClientFrame =
-  | { hello: { bearer_token: string } }
-  | { subscribe_events: Record<string, never> }
-  | { ping: { nonce: string } }
-
-export function encodeClientFrame(frame: ClientFrame): Buffer {
-  const ClientFrame = getRoot().lookupType('chatto.realtime.v1.RealtimeClientFrame')
-  return Buffer.from(ClientFrame.encode(ClientFrame.create(frame as object)).finish())
-}
-
-export function decodeServerFrame(buffer: Buffer): ServerFrame {
-  const ServerFrame = getRoot().lookupType('chatto.realtime.v1.RealtimeServerFrame')
-  const decoded = ServerFrame.decode(buffer)
-  return ServerFrame.toObject(decoded, { keepCase: true } as object) as ServerFrame
-}
+//# sourceMappingURL=frames.js.map

@@ -1,4 +1,4 @@
-import type { ZodSchema } from 'zod'
+import type { z, ZodTypeAny } from 'zod'
 import { ChattoApiError, ChattoParseError } from '../errors'
 
 export class RestClient {
@@ -7,12 +7,12 @@ export class RestClient {
     private readonly token: string,
   ) {}
 
-  async post<T>(
+  async post<S extends ZodTypeAny>(
     service: string,
     method: string,
     input: unknown,
-    schema: ZodSchema<T>,
-  ): Promise<T> {
+    schema: S,
+  ): Promise<z.output<S>> {
     const url = `${this.baseUrl}/api/connect/${service}/${method}`
     const res = await fetch(url, {
       method: 'POST',
@@ -38,6 +38,6 @@ export class RestClient {
     if (!parsed.success) {
       throw new ChattoParseError(parsed.error.issues, body)
     }
-    return parsed.data
+    return parsed.data as z.output<S>
   }
 }
