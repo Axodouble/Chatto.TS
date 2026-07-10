@@ -15,10 +15,15 @@ if (!hasCreds) {
 describe.if(hasCreds)('live integration', () => {
   it('logs in and lists users', async () => {
     const client = await ChattoClient.login({ baseUrl: baseUrl!, login: login!, password: password! })
-    const users = await client.users.list()
-    expect(Array.isArray(users)).toBe(true)
-    expect(users.length).toBeGreaterThan(0)
-    expect(users[0].displayName).toBeString()
+    await client.connect()
+    try {
+      const users = await client.users.list()
+      expect(Array.isArray(users)).toBe(true)
+      expect(users.length).toBeGreaterThan(0)
+      expect(users[0].displayName).toBeString()
+    } finally {
+      await client.disconnect()
+    }
   })
 
   it.if(Boolean(testRoom))('sends and replies, with eager author/channel populated', async () => {

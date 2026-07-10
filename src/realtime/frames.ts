@@ -36,14 +36,19 @@ message RealtimeServerHello {
   repeated string capabilities = 5;
 }
 message RealtimeSubscribed {}
-message RealtimeHeartbeat { string id = 1; string created_at = 2; }
+message RealtimeHeartbeat { string id = 1; Timestamp created_at = 2; }
+
+// The server encodes timestamps as google.protobuf.Timestamp-shaped messages
+// (seconds + nanos), not RFC 3339 strings. Model it explicitly so decoding
+// doesn't try to UTF-8-decode the wire bytes.
+message Timestamp { int64 seconds = 1; int32 nanos = 2; }
 message RealtimePong { string nonce = 1; }
 message RealtimeError { string code = 1; string message = 2; bool fatal = 3; }
 message RealtimeClose { string code = 1; string message = 2; bool reconnect = 3; int32 retry_after_ms = 4; }
 
 message RealtimeEventEnvelope {
   string id = 1;
-  string created_at = 2;
+  Timestamp created_at = 2;
   string actor_id = 3;
   oneof event {
     RealtimeMessagePostedEvent message_posted = 10;
@@ -99,8 +104,30 @@ export function encodeClientFrame(frame: ClientFrame): Buffer {
   return Buffer.from(ClientFrame.encode(ClientFrame.create(frame as object)).finish())
 }
 
+interface WireTimestamp {
+  seconds?: number
+  nanos?: number
+}
+
+function timestampToIso(ts: WireTimestamp | string | undefined): string {
+  // Already a string (defensive) or missing → pass through / empty.
+  if (ts == null) return ''
+  if (typeof ts === 'string') return ts
+  const ms = (ts.seconds ?? 0) * 1000 + Math.floor((ts.nanos ?? 0) / 1_000_000)
+  return new Date(ms).toISOString()
+}
+
 export function decodeServerFrame(buffer: Buffer): ServerFrame {
   const ServerFrame = getRoot().lookupType('chatto.realtime.v1.RealtimeServerFrame')
   const decoded = ServerFrame.decode(buffer)
-  return ServerFrame.toObject(decoded, { keepCase: true } as object) as ServerFrame
+  // longs: Number so int64 `seconds` comes back as a JS number rather than a Long object.
+  const frame = ServerFrame.toObject(decoded, { keepCase: true, longs: Number } as object) as {
+    event?: { created_at?: WireTimestamp | string }
+    heartbeat?: { created_at?: WireTimestamp | string }
+  } & ServerFrame
+
+  if (frame.event != null) frame.event.created_at = timestampToIso(frame.event.created_at)
+  if (frame.heartbeat != null) frame.heartbeat.created_at = timestampToIso(frame.heartbeat.created_at)
+
+  return frame as ServerFrame
 }

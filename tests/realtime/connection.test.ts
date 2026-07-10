@@ -17,7 +17,8 @@ function buildServerFrameBuffer(payload: object): Buffer {
     }
     message RealtimeServerHello { uint32 heartbeat_interval_seconds = 4; }
     message RealtimeSubscribed {}
-    message RealtimeEventEnvelope { string id = 1; string created_at = 2; string actor_id = 3; }
+    message RealtimeEventEnvelope { string id = 1; Timestamp created_at = 2; string actor_id = 3; }
+    message Timestamp { int64 seconds = 1; int32 nanos = 2; }
     message RealtimeClose { string code = 1; string message = 2; bool reconnect = 3; int32 retry_after_ms = 4; }
     message RealtimeError { string code = 1; string message = 2; bool fatal = 3; }
   `, { keepCase: true }).root
@@ -86,11 +87,13 @@ describe('RealtimeConnection', () => {
     const frames: unknown[] = []
     conn.on('frame', f => frames.push(f))
 
+    // Server sends timestamps as google.protobuf.Timestamp-shaped messages, not strings.
     mockWs.emit('message', buildServerFrameBuffer({
-      event: { id: 'env_1', created_at: '2026-07-09T10:00:00Z', actor_id: 'user_1' },
+      event: { id: 'env_1', created_at: { seconds: 1752055200, nanos: 0 }, actor_id: 'user_1' },
     }))
 
     expect(frames).toHaveLength(1)
+    expect((frames[0] as any).event.created_at).toBe('2025-07-09T10:00:00.000Z')
     conn.disconnect()
   })
 

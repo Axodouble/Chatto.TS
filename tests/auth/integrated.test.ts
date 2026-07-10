@@ -17,6 +17,7 @@ const successBody = {
 
 describe('loginWithPassword', () => {
   let fetchMock: ReturnType<typeof mock>
+  const originalFetch = globalThis.fetch
 
   beforeEach(() => {
     fetchMock = mock(async (_url: string, _opts?: RequestInit) =>
@@ -27,6 +28,9 @@ describe('loginWithPassword', () => {
 
   afterEach(() => {
     mock.restore()
+    // mock.restore() does not undo a direct `globalThis.fetch = ...` assignment,
+    // so restore it explicitly — otherwise the mock leaks into later test files.
+    globalThis.fetch = originalFetch
   })
 
   it('POSTs to /auth/login with login and password', async () => {
