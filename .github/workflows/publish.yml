@@ -9,7 +9,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write # required to create the GitHub release
       id-token: write # required for npm provenance
     steps:
       - name: Checkout
@@ -66,4 +66,17 @@ jobs:
             npm publish --access public --tag next
           else
             npm publish --access public
+          fi
+
+      # Create a GitHub release for the pushed tag. Prerelease tags (e.g.
+      # v0.4.1-rc0) are marked as prereleases so they are not shown as the
+      # latest release. Notes are auto-generated from commits/PRs.
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            gh release create "$GITHUB_REF_NAME" --generate-notes --prerelease
+          else
+            gh release create "$GITHUB_REF_NAME" --generate-notes
           fi
