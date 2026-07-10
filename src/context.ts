@@ -1,4 +1,4 @@
-import type { RestClient } from './rest/client'
+import type { ServiceClients } from './rest/transport'
 import type { MessageData } from './types'
 import { Message } from './resources/message'
 import { User } from './resources/user'
@@ -9,22 +9,22 @@ import { MessageManager } from './managers/messages'
 import { UserCache, RoomCache } from './caches'
 
 export interface ClientContext {
-  readonly rest: RestClient
+  readonly clients: ServiceClients
   resolveUser(id: string): Promise<User>
   resolveRoom(id: string): Promise<Room>
   hydrateMessage(data: MessageData): Promise<Message>
 }
 
 export class ChattoContext implements ClientContext {
-  readonly rest: RestClient
+  readonly clients: ServiceClients
   readonly users: UserManager
   readonly rooms: RoomManager
   readonly messages: MessageManager
   private readonly userCache: UserCache
   private readonly roomCache: RoomCache
 
-  constructor(rest: RestClient) {
-    this.rest = rest
+  constructor(clients: ServiceClients) {
+    this.clients = clients
     this.users = new UserManager(this)
     this.rooms = new RoomManager(this)
     this.messages = new MessageManager(this)

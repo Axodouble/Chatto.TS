@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events'
-import { RestClient } from './rest/client'
+import { createChattoTransport, createServiceClients } from './rest/transport'
 import { RealtimeConnection } from './realtime/connection'
 import { mapFrameToEvent } from './realtime/events'
 import { ChattoContext } from './context'
@@ -26,7 +26,6 @@ export class ChattoClient extends EventEmitter<ClientEventMap> {
   readonly rooms: RoomManager
   readonly messages: MessageManager
   readonly users: UserManager
-  private readonly rest: RestClient
   private readonly realtime: RealtimeConnection
   private readonly ctx: ChattoContext
 
@@ -36,11 +35,11 @@ export class ChattoClient extends EventEmitter<ClientEventMap> {
   ) {
     super()
     const wsUrl = options.baseUrl.replace(/^https?/, m => (m === 'https' ? 'wss' : 'ws')) + '/api/realtime'
-    this.rest = new RestClient(options.baseUrl, options.token)
+    const transport = createChattoTransport(options.baseUrl, options.token)
     this.realtime = realtimeFactory
       ? realtimeFactory(wsUrl, options.token)
       : new RealtimeConnection(wsUrl, options.token)
-    this.ctx = new ChattoContext(this.rest)
+    this.ctx = new ChattoContext(createServiceClients(transport))
     this.rooms = this.ctx.rooms
     this.messages = this.ctx.messages
     this.users = this.ctx.users
