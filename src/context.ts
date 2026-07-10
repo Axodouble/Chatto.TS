@@ -40,6 +40,15 @@ export class ChattoContext implements ClientContext {
     return this.roomCache.resolve(id)
   }
 
+  /**
+   * Author and channel are resolved through the client's permanent per-client
+   * caches (`userCache`/`roomCache`) and are point-in-time snapshots for the
+   * lifetime of the client: once cached, they are never re-fetched. Volatile
+   * fields on the resolved objects (e.g. `author.presenceStatus`,
+   * `author.displayName`, `channel.name`) may go stale if they change
+   * upstream. Call `client.users.fetch(id)` / `client.rooms.fetch(id)` for
+   * live, uncached data.
+   */
   async hydrateMessage(data: MessageData): Promise<Message> {
     const [author, channel] = await Promise.all([
       this.resolveUser(data.actorId).catch(() => User.partial(data.actorId)),

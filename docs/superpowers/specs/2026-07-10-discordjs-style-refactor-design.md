@@ -104,6 +104,9 @@ Every path that yields a user-visible `Message` goes through `hydrateMessage`, s
   return populated `Message`.
 
 Repeat authors/rooms cost zero extra requests thanks to the caches.
+Because caches are permanent for the client's lifetime, the cached `author`/`channel`
+are point-in-time snapshots — volatile fields (presence, display name, room name) do
+not refresh; call `client.users.fetch(id)`/`client.rooms.fetch(id)` for live data.
 
 ### Error handling
 

@@ -79,7 +79,7 @@ export class Message {
   }
 
   async reply(payload: MessagePayload): Promise<Message> {
-    const builder = resolveMessagePayload(payload)
+    const builder = resolveMessagePayload(payload).clone()
     builder.setReplyTo(this.id)
     builder.setThreadRoot(this.threadRootEventId ?? this.id)
     const input = builder.buildCreate(this.channelId)

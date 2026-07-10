@@ -68,6 +68,15 @@ describe('Message', () => {
         expect.anything(),
       )
     })
+
+    it('does not mutate a caller-supplied MessageBuilder', async () => {
+      const replyData = { ...validMessageData, id: 'evt_2' }
+      const ctx = makeCtx({ message: replyData })
+      const msg = makeMessage(validMessageData, ctx)
+      const builder = new MessageBuilder().setContent('x')
+      await msg.reply(builder)
+      expect(builder.buildCreate('R_1').inReplyTo).toBeUndefined()
+    })
   })
 
   describe('.edit()', () => {
