@@ -1,6 +1,6 @@
 {
   "name": "chatto.ts",
-  "version": "0.4.4",
+  "version": "0.5.0-pr0",
   "description": "Discord.js-like TypeScript SDK for Chatto",
   "repository": {
     "type": "git",
