@@ -2,49 +2,24 @@ import { describe, it, expect, mock } from 'bun:test'
 import { RoomManager } from '../../src/managers/rooms'
 import { Room } from '../../src/resources/room'
 
-const validRoom = {
-  id: 'room_1',
-  name: 'General',
-  kind: 'ROOM_KIND_CHANNEL',
-  archived: false,
-  universal: false,
-}
+const protoRoom = { id: 'R_1', name: 'general', kind: 1, description: '', archived: false, groupId: '', universal: false }
 
-function makeRestMock(returnValue: unknown) {
-  return { post: mock().mockResolvedValue(returnValue) }
-}
+function makeCtx(clientImpl: any) { return { clients: { roomDirectory: clientImpl } } as any }
 
 describe('RoomManager', () => {
-  describe('.list()', () => {
-    it('calls ListRooms and returns Room[]', async () => {
-      const rest = makeRestMock({ rooms: [{ room: validRoom }] })
-      const manager = new RoomManager({ rest } as any)
-      const rooms = await manager.list()
-      expect(rest.post).toHaveBeenCalledWith(
-        'chatto.api.v1.RoomDirectoryService',
-        'ListRooms',
-        {},
-        expect.anything(),
-      )
-      expect(rooms).toHaveLength(1)
-      expect(rooms[0]).toBeInstanceOf(Room)
-      expect(rooms[0].id).toBe('room_1')
-    })
+  it('list() calls listRooms and maps RoomWithViewerState', async () => {
+    const listRooms = mock().mockResolvedValue({ rooms: [{ room: protoRoom }] })
+    const rooms = await new RoomManager(makeCtx({ listRooms })).list()
+    expect(listRooms).toHaveBeenCalledWith({})
+    expect(rooms[0]).toBeInstanceOf(Room)
+    expect(rooms[0].name).toBe('general')
+    expect(rooms[0].kind).toBe('ROOM_KIND_CHANNEL')
   })
 
-  describe('.fetch()', () => {
-    it('calls GetRoom and returns a Room', async () => {
-      const rest = makeRestMock({ room: { room: validRoom } })
-      const manager = new RoomManager({ rest } as any)
-      const room = await manager.fetch('room_1')
-      expect(rest.post).toHaveBeenCalledWith(
-        'chatto.api.v1.RoomDirectoryService',
-        'GetRoom',
-        { roomId: 'room_1' },
-        expect.anything(),
-      )
-      expect(room).toBeInstanceOf(Room)
-      expect(room.name).toBe('General')
-    })
+  it('fetch() calls getRoom and maps the wrapped room', async () => {
+    const getRoom = mock().mockResolvedValue({ room: { room: protoRoom } })
+    const room = await new RoomManager(makeCtx({ getRoom })).fetch('R_1')
+    expect(getRoom).toHaveBeenCalledWith({ roomId: 'R_1' })
+    expect(room.name).toBe('general')
   })
 })

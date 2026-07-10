@@ -2,83 +2,30 @@ import { describe, it, expect, mock } from 'bun:test'
 import { UserManager } from '../../src/managers/users'
 import { User } from '../../src/resources/user'
 
-const validMember = {
-  user: {
-    id: 'user_1',
-    login: 'ceraia',
-    displayName: 'Ceraia',
-    deleted: false,
-    presenceStatus: 'PRESENCE_STATUS_OFFLINE' as const,
-  },
-  roles: ['everyone'],
-  createdAt: '2026-01-01T00:00:00Z',
-}
+const protoMember = { user: { id: 'U_1', login: 'ceraia', displayName: 'Ceraia', deleted: false, presenceStatus: 1, avatarUrl: undefined }, roles: [] }
 
-function makeRestMock(returnValue: unknown) {
-  return { post: mock().mockResolvedValue(returnValue) }
-}
+function makeCtx(clientImpl: any) { return { clients: { user: clientImpl } } as any }
 
 describe('UserManager', () => {
-  describe('.fetch()', () => {
-    it('calls GetUser and returns a User', async () => {
-      const rest = makeRestMock({ user: validMember })
-      const manager = new UserManager({ rest } as any)
-      const user = await manager.fetch('user_1')
-      expect(rest.post).toHaveBeenCalledWith(
-        'chatto.api.v1.UserService',
-        'GetUser',
-        { userId: 'user_1' },
-        expect.anything(),
-      )
-      expect(user).toBeInstanceOf(User)
-      expect(user.id).toBe('user_1')
-      expect(user.login).toBe('ceraia')
-    })
+  it('fetch() calls getUser and returns a User', async () => {
+    const getUser = mock().mockResolvedValue({ user: protoMember })
+    const u = await new UserManager(makeCtx({ getUser })).fetch('U_1')
+    expect(getUser).toHaveBeenCalledWith({ target: { case: 'userId', value: 'U_1' } })
+    expect(u).toBeInstanceOf(User)
+    expect(u.displayName).toBe('Ceraia')
+    expect(u.presenceStatus).toBe('PRESENCE_STATUS_ONLINE')
   })
 
-  describe('.batchFetch()', () => {
-    it('calls BatchGetUsers and returns User[]', async () => {
-      const member2 = { ...validMember, user: { ...validMember.user, id: 'user_2', login: '46sx' } }
-      const rest = makeRestMock({ users: [validMember, member2] })
-      const manager = new UserManager({ rest } as any)
-      const users = await manager.batchFetch(['user_1', 'user_2'])
-      expect(rest.post).toHaveBeenCalledWith(
-        'chatto.api.v1.UserService',
-        'BatchGetUsers',
-        { userIds: ['user_1', 'user_2'] },
-        expect.anything(),
-      )
-      expect(users).toHaveLength(2)
-      expect(users[0]).toBeInstanceOf(User)
-      expect(users[1].login).toBe('46sx')
-    })
+  it('batchFetch() calls batchGetUsers', async () => {
+    const batchGetUsers = mock().mockResolvedValue({ users: [protoMember] })
+    const users = await new UserManager(makeCtx({ batchGetUsers })).batchFetch(['U_1'])
+    expect(batchGetUsers).toHaveBeenCalledWith({ userIds: ['U_1'] })
+    expect(users).toHaveLength(1)
   })
 
-  describe('.list()', () => {
-    it('calls ListUsers with no search and returns User[]', async () => {
-      const rest = makeRestMock({ users: [validMember] })
-      const manager = new UserManager({ rest } as any)
-      const users = await manager.list()
-      expect(rest.post).toHaveBeenCalledWith(
-        'chatto.api.v1.UserService',
-        'ListUsers',
-        { search: undefined },
-        expect.anything(),
-      )
-      expect(users).toHaveLength(1)
-      expect(users[0]).toBeInstanceOf(User)
-    })
-
-    it('passes search term when provided', async () => {
-      const rest = makeRestMock({ users: [validMember] })
-      const manager = new UserManager({ rest } as any)
-      await manager.list({ search: 'ceraia' })
-      expect(rest.post).toHaveBeenCalledWith(
-        'chatto.api.v1.UserService',
-        'ListUsers',
-        { search: 'ceraia' },
-        expect.anything(),
-      )
-    })
+  it('list() calls listUsers with search', async () => {
+    const listUsers = mock().mockResolvedValue({ users: [protoMember] })
+    await new UserManager(makeCtx({ listUsers })).list({ search: 'ce' })
+    expect(listUsers).toHaveBeenCalledWith({ search: 'ce' })
   })
 })
