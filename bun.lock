@@ -6,12 +6,12 @@
       "name": "chatto.ts",
       "dependencies": {
         "protobufjs": "^8.7.0",
-        "ws": "^8.18.0",
+        "ws": "^8.21.0",
         "zod": "^4.4.3",
       },
       "devDependencies": {
         "@types/bun": "latest",
-        "@types/ws": "^8.5.0",
+        "@types/ws": "^8.18.1",
         "typescript": "^7.0.2",
       },
     },
