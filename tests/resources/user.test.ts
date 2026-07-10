@@ -56,3 +56,25 @@ describe('PartialUser', () => {
     })
   })
 })
+
+describe('User discord.js ergonomics', () => {
+  const memberData = {
+    user: {
+      id: 'U_1', login: 'ceraia', displayName: 'Ceraia', deleted: false,
+      avatarUrl: 'https://x/a.png', presenceStatus: 'PRESENCE_STATUS_ONLINE',
+    },
+    roles: ['admin'],
+  }
+
+  it('exposes username as an alias of login', () => {
+    const user = new User(memberData as any)
+    expect(user.username).toBe('ceraia')
+  })
+
+  it('User.partial builds a User from just an id', () => {
+    const user = User.partial('U_42')
+    expect(user.id).toBe('U_42')
+    expect(user.displayName).toBe('U_42')
+    expect(user.login).toBe('U_42')
+  })
+})

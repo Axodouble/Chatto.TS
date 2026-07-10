@@ -24,6 +24,26 @@ export class User {
     this.roles = data.roles
     this.createdAt = data.createdAt
   }
+
+  get username(): string {
+    return this.login
+  }
+
+  static partial(id: string): User {
+    return new User({
+      user: {
+        id,
+        login: id,
+        displayName: id,
+        deleted: false,
+        avatarUrl: undefined,
+        presenceStatus: 'PRESENCE_STATUS_UNSPECIFIED',
+        customStatus: undefined,
+      },
+      roles: [],
+      createdAt: undefined,
+    })
+  }
 }
 
 export class PartialUser {
