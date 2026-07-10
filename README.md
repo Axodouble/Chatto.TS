@@ -1,5 +1,10 @@
 # Chatto.ts
 
+[![npm version](https://img.shields.io/npm/v/chatto.ts&color=cb3837&logo=npm)](https://www.npmjs.com/package/chatto.ts)
+[![npm downloads](https://img.shields.io/npm/dm/chatto.ts&color=cb3837)](https://www.npmjs.com/package/chatto.ts)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178c6&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
+
 A Chatto Typescript library to interface with a Chatto instance.
 
 ## API
