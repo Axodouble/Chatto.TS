@@ -66,16 +66,28 @@ describe('createChattoTransport', () => {
     expect(capturedHeaders?.get('Authorization')).toBe('Bearer mytoken')
   })
 
-  // NOTE: an error-path test asserting that a fetch-level Connect error surfaces to the
-  // caller as a ChattoApiError was attempted here and deliberately omitted. Connect-web's
-  // own `runUnaryCall` (protocol/run-call.js) wraps the entire interceptor chain in a
-  // `.then(res, abort)`, and `abort` unconditionally runs `ConnectError.from(reason)` on
-  // whatever the chain rejects with. Since `ChattoApiError` is not `instanceof ConnectError`,
-  // any ChattoApiError thrown by `authInterceptor`'s catch block gets re-wrapped into a
-  // plain ConnectError (Code.Unknown) before it reaches the RPC caller — verified with a
-  // standalone repro against createConnectTransport. So today, callers of
-  // createServiceClients() never actually observe a ChattoApiError; they see a generic
-  // ConnectError. Shipping the intended assertion here would be a permanently-failing (not
-  // flaky) test, so it was left out per the task's fallback guidance; see the fix report
-  // for details. This is a pre-existing design gap, out of scope for this fix pass.
+})
+
+describe('createServiceClients error mapping', () => {
+  it('maps a server-thrown ConnectError to a ChattoApiError at the client boundary', async () => {
+    const transport = createRouterTransport(({ service }) => {
+      service(MessageService, {
+        getMessage: () => {
+          throw new ConnectError('denied', Code.PermissionDenied)
+        },
+      })
+    })
+    const clients = createServiceClients(transport)
+
+    let caught: unknown
+    try {
+      await clients.message.getMessage({ roomId: 'R_1', eventId: 'evt_1' })
+    } catch (err) {
+      caught = err
+    }
+
+    expect(caught).toBeInstanceOf(ChattoApiError)
+    expect(caught).not.toBeInstanceOf(ConnectError)
+    expect((caught as ChattoApiError).code).toBe('permission_denied')
+  })
 })

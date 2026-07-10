@@ -29,11 +29,7 @@ function codeNameOf(code: number): string {
 function authInterceptor(token: string): Interceptor {
   return next => async req => {
     req.header.set('Authorization', `Bearer ${token}`)
-    try {
-      return await next(req)
-    } catch (err) {
-      throw toChattoError(err)
-    }
+    return next(req)
   }
 }
 
@@ -44,6 +40,23 @@ export function createChattoTransport(baseUrl: string, token: string): Transport
   })
 }
 
+// connect-web's transport rewraps any non-ConnectError thrown inside an interceptor
+// into a generic ConnectError(Code.Unknown), so error mapping cannot happen there.
+// Instead, wrap the created client so every method call maps its rejection via
+// toChattoError at the point where callers actually observe it.
+function mapErrors<T extends object>(client: T): T {
+  return new Proxy(client, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver)
+      if (typeof value !== 'function') return value
+      return (...args: unknown[]) => {
+        const out = (value as (...a: unknown[]) => unknown).apply(target, args)
+        return out instanceof Promise ? out.catch((err: unknown) => { throw toChattoError(err) }) : out
+      }
+    },
+  })
+}
+
 export function createServiceClients(transport: Transport): {
   message: Client<typeof MessageService>
   user: Client<typeof UserService>
@@ -51,10 +64,10 @@ export function createServiceClients(transport: Transport): {
   room: Client<typeof RoomService>
 } {
   return {
-    message: createClient(MessageService, transport),
-    user: createClient(UserService, transport),
-    roomDirectory: createClient(RoomDirectoryService, transport),
-    room: createClient(RoomService, transport),
+    message: mapErrors(createClient(MessageService, transport)),
+    user: mapErrors(createClient(UserService, transport)),
+    roomDirectory: mapErrors(createClient(RoomDirectoryService, transport)),
+    room: mapErrors(createClient(RoomService, transport)),
   }
 }
 
