@@ -9,6 +9,8 @@
 A Chatto Typescript library to interface with a Chatto instance.
 Tested against `v0.4.7` of Chatto.
 
+If you are looking for a `Java` SDK, f[eel free to use this SDK made by a fellow developer](https://github.com/freakynit/chatto-java-sdk)!
+
 ## API
 
 The API will be built upon the documentation that lives at [docs.chatto.run](https://docs.chatto.run/reference/connectrpc-api/).
