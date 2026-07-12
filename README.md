@@ -7,9 +7,9 @@
 [![Publish to npm](https://github.com/Axodouble/chatto.ts/actions/workflows/publish.yml/badge.svg)](https://github.com/Axodouble/chatto.ts/actions/workflows/publish.yml)
 
 A Chatto Typescript library to interface with a Chatto instance.
-Tested against `v0.4.7` of Chatto.
+Tested against `v0.4.9` of Chatto.
 
-If you are looking for a `Java` SDK, f[eel free to use this SDK made by a fellow developer](https://github.com/freakynit/chatto-java-sdk)!
+If you are looking for a `Java` SDK, [feel free to use this SDK made by a fellow developer](https://github.com/freakynit/chatto-java-sdk)!
 
 ## API
 
