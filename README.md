@@ -1,10 +1,10 @@
 # Chatto.ts
 
-[![npm version](https://img.shields.io/npm/v/chatto.ts&color=cb3837&logo=npm)](https://www.npmjs.com/package/chatto.ts)
-[![npm downloads](https://img.shields.io/npm/dm/chatto.ts&color=cb3837)](https://www.npmjs.com/package/chatto.ts)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178c6&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
-[![Publish to npm](https://github.com/Axodouble/chatto.ts/actions/workflows/publish.yml/badge.svg)](https://github.com/Axodouble/chatto.ts/actions/workflows/publish.yml)
+[![npm version](https://img.shields.io/npm/v/chatto.ts?style=flat)](https://www.npmjs.com/package/chatto.ts)
+[![npm downloads](https://img.shields.io/npm/dw/chatto.ts?style=flat)](https://www.npmjs.com/package/chatto.ts)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=flat)](LICENSE)
+[![Publish to npm](https://img.shields.io/github/actions/workflow/status/axodouble/chatto.ts/.github%2Fworkflows%2Fpublish.yml)](https://github.com/Axodouble/chatto.ts)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178c6&logo=typescript&logoColor=white?style=flat)](https://www.typescriptlang.org/)
 
 A Chatto Typescript library to interface with a Chatto instance.
 Tested against `v0.4.9` of Chatto.
