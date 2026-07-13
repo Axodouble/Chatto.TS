@@ -16,6 +16,7 @@ export type {
   MessageDeleteEvent,
   ReactionEvent,
   ChattoClientOptions,
+  ClientEventMap,
   UserData,
   DirectoryMemberData,
   AssetData,
