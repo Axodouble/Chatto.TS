@@ -35,7 +35,7 @@ class MockWs extends EventEmitter {
 }
 
 function makeConn(mockWs: MockWs): RealtimeConnection {
-  return new RealtimeConnection('ws://chat.example.com/api/realtime', 'mytoken', () => mockWs as any)
+  return new RealtimeConnection('ws://chat.example.com/api/realtime', () => 'mytoken', () => mockWs as any)
 }
 
 function handshake(mockWs: MockWs) {
@@ -97,17 +97,63 @@ describe('RealtimeConnection', () => {
     conn.disconnect()
   })
 
-  it('emits close with reconnect=false on ws close event', async () => {
+  it('classifies a raw 1006 close as retry', async () => {
     const mockWs = new MockWs()
     handshake(mockWs)
-
     const conn = makeConn(mockWs)
     await conn.connect()
+    const reasons: any[] = []
+    conn.on('close', r => reasons.push(r))
+    mockWs.emit('close', 1006, Buffer.from(''))
+    expect(reasons).toEqual([{ kind: 'retry', code: 1006, retryAfterMs: 0 }])
+  })
 
-    const closes: [boolean, number][] = []
-    conn.on('close', (reconnect, ms) => closes.push([reconnect, ms]))
+  it('classifies a raw 1008 close as auth', async () => {
+    const mockWs = new MockWs()
+    handshake(mockWs)
+    const conn = makeConn(mockWs)
+    await conn.connect()
+    const reasons: any[] = []
+    conn.on('close', r => reasons.push(r))
+    mockWs.emit('close', 1008, Buffer.from('authentication required'))
+    expect(reasons[0].kind).toBe('auth')
+  })
 
-    mockWs.emit('close')
-    expect(closes).toEqual([[false, 0]])
+  it('classifies a raw 1002 close as fatal', async () => {
+    const mockWs = new MockWs()
+    handshake(mockWs)
+    const conn = makeConn(mockWs)
+    await conn.connect()
+    const reasons: any[] = []
+    conn.on('close', r => reasons.push(r))
+    mockWs.emit('close', 1002, Buffer.from('protocol error'))
+    expect(reasons[0].kind).toBe('fatal')
+  })
+
+  it('reports a user-initiated disconnect as clean', async () => {
+    const mockWs = new MockWs()
+    handshake(mockWs)
+    const conn = makeConn(mockWs)
+    await conn.connect()
+    const reasons: any[] = []
+    conn.on('close', r => reasons.push(r))
+    conn.disconnect()
+    mockWs.emit('close', 1000, Buffer.from(''))
+    expect(reasons[0].kind).toBe('clean')
+  })
+
+  it('emits close only once when frame close precedes ws close', async () => {
+    const mockWs = new MockWs()
+    handshake(mockWs)
+    const conn = makeConn(mockWs)
+    await conn.connect()
+    const reasons: any[] = []
+    conn.on('close', r => reasons.push(r))
+    mockWs.emit('message', buildServerFrameBuffer({
+      close: { code: 'stream_closed', message: 'x', reconnect: true, retry_after_ms: 1000 },
+    }))
+    mockWs.emit('close', 1006, Buffer.from(''))
+    expect(reasons).toHaveLength(1)
+    expect(reasons[0]).toEqual({ kind: 'retry', code: 1000, retryAfterMs: 1000 })
   })
 })
