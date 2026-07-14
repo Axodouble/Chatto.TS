@@ -17,6 +17,8 @@ export type {
   ReactionEvent,
   ChattoClientOptions,
   ClientEventMap,
+  ReconnectOptions,
+  RefreshOptions,
   UserData,
   DirectoryMemberData,
   AssetData,
