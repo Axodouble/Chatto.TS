@@ -10,8 +10,9 @@ import type { MessageManager } from './managers/messages'
 import type { ThreadManager } from './managers/threads'
 import type { UserManager } from './managers/users'
 import type { AssetManager } from './managers/assets'
-import type { ChattoClientOptions, ClientEventMap } from './types'
+import type { ChattoClientOptions, ClientEventMap, ReconnectOptions } from './types'
 import type { ServerFrame } from './realtime/frames'
+import { ChattoAuthError } from './errors'
 
 
 export class ChattoClient extends EventEmitter<ClientEventMap> {
@@ -24,6 +25,9 @@ export class ChattoClient extends EventEmitter<ClientEventMap> {
   private readonly realtime: RealtimeConnection
   private readonly ctx: ChattoContext
   private readonly store: TokenStore
+  private reconnecting = false
+  private reconnectAttempt = 0
+  private readonly reconnectOpts: Required<ReconnectOptions>
 
   constructor(
     options: ChattoClientOptions,
@@ -32,6 +36,12 @@ export class ChattoClient extends EventEmitter<ClientEventMap> {
     super()
     const wsUrl = options.baseUrl.replace(/^https?/, m => (m === 'https' ? 'wss' : 'ws')) + '/api/realtime'
     this.store = new TokenStore(options.baseUrl, options.token, options.credentials)
+    this.reconnectOpts = {
+      baseDelayMs: options.reconnect?.baseDelayMs ?? 1000,
+      maxDelayMs: options.reconnect?.maxDelayMs ?? 30000,
+      factor: options.reconnect?.factor ?? 2,
+      maxAttempts: options.reconnect?.maxAttempts ?? Infinity,
+    }
     const getToken = () => this.store.getToken()
     this.rest = new RestClient(options.baseUrl, getToken, async () => {
       await this.store.refresh()
@@ -101,11 +111,52 @@ export class ChattoClient extends EventEmitter<ClientEventMap> {
         this.emit('disconnect')
         return
       }
-      setTimeout(() => {
-        this.realtime.connect().catch(err => {
-          this.emit('error', err instanceof Error ? err : new Error(String(err)))
-        })
-      }, reason.retryAfterMs)
+      if (reason.kind === 'auth' && !this.store.canRefresh()) {
+        this.emit('error', new ChattoAuthError('no_credentials', 'Realtime auth failed and no credentials to refresh'))
+        this.emit('disconnect')
+        return
+      }
+      this.startReconnect(reason)
     })
+  }
+
+  private startReconnect(reason: CloseReason): void {
+    if (this.reconnecting) return
+    this.reconnecting = true
+    this.reconnectAttempt = 0
+    this.attemptReconnect(reason)
+  }
+
+  private attemptReconnect(reason: CloseReason): void {
+    if (this.reconnectAttempt >= this.reconnectOpts.maxAttempts) {
+      this.reconnecting = false
+      this.emit('disconnect')
+      return
+    }
+    const n = this.reconnectAttempt
+    const raw = Math.min(
+      this.reconnectOpts.baseDelayMs * this.reconnectOpts.factor ** n,
+      this.reconnectOpts.maxDelayMs,
+    )
+    const jittered = raw / 2 + Math.random() * (raw / 2)
+    const delay = Math.max(jittered, reason.retryAfterMs)
+    this.reconnectAttempt = n + 1
+    this.emit('reconnecting', this.reconnectAttempt, delay)
+    setTimeout(() => {
+      this.doReconnect(reason).catch(err => {
+        this.emit('error', err instanceof Error ? err : new Error(String(err)))
+        this.attemptReconnect(reason)
+      })
+    }, delay)
+  }
+
+  private async doReconnect(reason: CloseReason): Promise<void> {
+    if (reason.kind === 'auth' && this.store.canRefresh()) {
+      await this.store.refresh()
+      this.emit('tokenRefresh')
+    }
+    await this.realtime.connect()
+    this.reconnecting = false
+    this.reconnectAttempt = 0
   }
 }
