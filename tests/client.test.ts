@@ -134,5 +134,81 @@ describe('ChattoClient', () => {
     expect(room.id).toBe('R1')
   })
 
+  it('emits disconnect on a fatal close without reconnecting', () => {
+    const mockRt = makeMockRt()
+    const client = makeClient(mockRt)
+    const disconnects: unknown[] = []
+    client.on('disconnect', () => disconnects.push(true))
+    mockRt.emit('close', { kind: 'fatal', code: 1002, retryAfterMs: 0 })
+    expect(disconnects).toHaveLength(1)
+    expect(mockRt.connect).not.toHaveBeenCalled()
+  })
+
+  it('reconnects with a fresh token on an auth close when credentials exist', async () => {
+    const mockRt = makeMockRt()
+    const loginResponses: string[] = []
+    const spy = spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      loginResponses.push('login')
+      return { ok: true, status: 200, statusText: 'OK', json: async () => ({ success: true, token: 'fresh', user: { id: 'U1', login: 'u' } }) } as Response
+    })
+    const client = new ChattoClient(
+      { baseUrl: 'https://c', token: 'stale', credentials: { login: 'u', password: 'p' }, reconnect: { baseDelayMs: 1 } },
+      () => mockRt as unknown as RealtimeConnection,
+    )
+    const refreshed: unknown[] = []
+    client.on('tokenRefresh', () => refreshed.push(true))
+    mockRt.emit('close', { kind: 'auth', code: 1008, retryAfterMs: 0 })
+    await new Promise(r => setTimeout(r, 20))
+    expect(spy).toHaveBeenCalled()          // re-login happened
+    expect(mockRt.connect).toHaveBeenCalled()
+    expect(refreshed).toHaveLength(1)
+  })
+
+  it('emits error + disconnect on an auth close with no credentials (no loop)', async () => {
+    const mockRt = makeMockRt()
+    const client = makeClient(mockRt)   // token-only, no credentials
+    const errors: Error[] = []
+    const disconnects: unknown[] = []
+    client.on('error', e => errors.push(e))
+    client.on('disconnect', () => disconnects.push(true))
+    mockRt.emit('close', { kind: 'auth', code: 1008, retryAfterMs: 0 })
+    await new Promise(r => setTimeout(r, 5))
+    expect(errors[0]?.name).toBe('ChattoAuthError')
+    expect(disconnects).toHaveLength(1)
+    expect(mockRt.connect).not.toHaveBeenCalled()
+  })
+
+  it('does not stack overlapping reconnects while one is in flight', async () => {
+    const mockRt = makeMockRt()
+    let resolveConnect!: () => void
+    mockRt.connect = mock(() => new Promise<void>(r => { resolveConnect = r })) as any
+    const client = new ChattoClient(
+      { baseUrl: 'https://c', token: 'tk', reconnect: { baseDelayMs: 1 } },
+      () => mockRt as unknown as RealtimeConnection,
+    )
+    mockRt.emit('close', { kind: 'retry', code: 1006, retryAfterMs: 0 })
+    mockRt.emit('close', { kind: 'retry', code: 1006, retryAfterMs: 0 })
+    await new Promise(r => setTimeout(r, 10))
+    expect(mockRt.connect).toHaveBeenCalledTimes(1)
+    resolveConnect()
+  })
+
+  it('emits reconnecting with attempt number and gives up after maxAttempts', async () => {
+    const mockRt = makeMockRt()
+    mockRt.connect = mock(() => Promise.reject(new Error('down'))) as any
+    const client = new ChattoClient(
+      { baseUrl: 'https://c', token: 'tk', reconnect: { baseDelayMs: 1, maxDelayMs: 2, maxAttempts: 3 } },
+      () => mockRt as unknown as RealtimeConnection,
+    )
+    const attempts: number[] = []
+    const disconnects: unknown[] = []
+    client.on('reconnecting', a => attempts.push(a))
+    client.on('disconnect', () => disconnects.push(true))
+    mockRt.emit('close', { kind: 'retry', code: 1006, retryAfterMs: 0 })
+    await new Promise(r => setTimeout(r, 50))
+    expect(attempts).toEqual([1, 2, 3])
+    expect(disconnects).toHaveLength(1)
+  })
+
   afterEach(() => mock.restore())
 })
