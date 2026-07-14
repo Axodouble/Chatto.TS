@@ -45,7 +45,7 @@ export class Message {
     this.attachments = (data.attachments ?? []).map(a => new Attachment(a))
   }
 
-  async edit(payload: MessagePayload): Promise<Message> {
+  async edit(payload: Omit<MessagePayload, 'files'>): Promise<Message> {
     const input = resolveMessagePayload(payload).buildUpdate(this.channelId, this.id)
     const res = await this.ctx.rest.post(
       'chatto.api.v1.MessageService',
