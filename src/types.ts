@@ -45,10 +45,31 @@ export interface ThumbnailOptions {
   fit?: 'contain' | 'cover'
 }
 
+export interface ReconnectOptions {
+  /** First reconnect delay, in ms. Default 1000. */
+  baseDelayMs?: number
+  /** Maximum reconnect delay, in ms. Default 30000. */
+  maxDelayMs?: number
+  /** Backoff multiplier per attempt. Default 2. */
+  factor?: number
+  /** Max reconnect attempts before giving up. Default Infinity. */
+  maxAttempts?: number
+}
+
+export interface RefreshOptions {
+  /** Optional opt-in periodic re-login interval, in ms. Default: disabled. */
+  intervalMs?: number
+}
+
 export interface ChattoClientOptions {
   baseUrl: string
   token: string
+  /** Retained password credentials; enables automatic re-login on auth failure. */
+  credentials?: { login: string; password: string }
+  reconnect?: ReconnectOptions
+  refresh?: RefreshOptions
 }
+
 export interface ClientEventMap {
   ready: []
   messageCreate: [message: Message]
@@ -58,4 +79,8 @@ export interface ClientEventMap {
   reactionRemove: [event: ReactionEvent]
   error: [err: Error]
   disconnect: []
+  /** Emitted after a successful re-login applied a new token. */
+  tokenRefresh: []
+  /** Emitted before each reconnect attempt. */
+  reconnecting: [attempt: number, delayMs: number]
 }
