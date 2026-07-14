@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events'
 import { RestClient } from './rest/client'
-import { RealtimeConnection } from './realtime/connection'
+import { RealtimeConnection, type CloseReason } from './realtime/connection'
 import { mapFrameToEvent } from './realtime/events'
 import { ChattoContext } from './context'
 import { loginWithPassword } from './auth/integrated'
@@ -32,7 +32,7 @@ export class ChattoClient extends EventEmitter<ClientEventMap> {
     this.rest = new RestClient(options.baseUrl, () => options.token)
     this.realtime = realtimeFactory
       ? realtimeFactory(wsUrl, options.token)
-      : new RealtimeConnection(wsUrl, options.token)
+      : new RealtimeConnection(wsUrl, () => options.token)
     this.ctx = new ChattoContext(this.rest)
     this.rooms = this.ctx.rooms
     this.messages = this.ctx.messages
@@ -85,8 +85,8 @@ export class ChattoClient extends EventEmitter<ClientEventMap> {
 
     this.realtime.on('error', (err: Error) => this.emit('error', err))
 
-    this.realtime.on('close', (reconnect: boolean, retryAfterMs: number) => {
-      if (!reconnect) {
+    this.realtime.on('close', (reason: CloseReason) => {
+      if (reason.kind === 'clean' || reason.kind === 'fatal') {
         this.emit('disconnect')
         return
       }
@@ -94,7 +94,7 @@ export class ChattoClient extends EventEmitter<ClientEventMap> {
         this.realtime.connect().catch(err => {
           this.emit('error', err instanceof Error ? err : new Error(String(err)))
         })
-      }, retryAfterMs)
+      }, reason.retryAfterMs)
     })
   }
 }
