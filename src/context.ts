@@ -8,11 +8,13 @@ import { RoomManager } from './managers/rooms'
 import { MessageManager } from './managers/messages'
 import { ThreadManager } from './managers/threads'
 import { AssetManager } from './managers/assets'
+import { AccountManager } from './managers/account'
 import { UserCache, RoomCache } from './caches'
 
 export interface ClientContext {
   readonly rest: RestClient
   readonly assets: AssetManager
+  readonly account: AccountManager
   resolveUser(id: string): Promise<User>
   resolveRoom(id: string): Promise<Room>
   hydrateMessage(data: MessageData): Promise<Message>
@@ -25,6 +27,7 @@ export class ChattoContext implements ClientContext {
   readonly messages: MessageManager
   readonly threads: ThreadManager
   readonly assets: AssetManager
+  readonly account: AccountManager
   private readonly userCache: UserCache
   private readonly roomCache: RoomCache
 
@@ -35,6 +38,7 @@ export class ChattoContext implements ClientContext {
     this.messages = new MessageManager(this)
     this.threads = new ThreadManager(this)
     this.assets = new AssetManager(this)
+    this.account = new AccountManager(this)
     this.userCache = new UserCache(id => this.users.fetch(id))
     this.roomCache = new RoomCache(id => this.rooms.fetch(id))
   }
