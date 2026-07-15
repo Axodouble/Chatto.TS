@@ -5,6 +5,9 @@ import {
   GetUserResponseSchema,
   BatchGetUsersResponseSchema,
   ListUsersResponseSchema,
+  UpdatePresenceResponseSchema,
+  UpdateCustomStatusResponseSchema,
+  DeleteCustomStatusResponseSchema,
 } from '../../src/schemas/user'
 
 const validUser = {
@@ -83,5 +86,25 @@ describe('ListUsersResponseSchema', () => {
     const result = ListUsersResponseSchema.parse({ users: [validMember] })
     expect(result.users).toHaveLength(1)
     expect(result.users[0].user.id).toBe('user_1')
+  })
+})
+
+describe('status response schemas', () => {
+  it('parses UpdatePresenceResponse', () => {
+    const parsed = UpdatePresenceResponseSchema.parse({ status: 'PRESENCE_STATUS_ONLINE' })
+    expect(parsed.status).toBe('PRESENCE_STATUS_ONLINE')
+  })
+
+  it('parses UpdateCustomStatusResponse', () => {
+    const parsed = UpdateCustomStatusResponseSchema.parse({
+      status: { emoji: '🎧', text: 'listening', expiresAt: '2026-07-15T12:00:00Z' },
+    })
+    expect(parsed.status.emoji).toBe('🎧')
+    expect(parsed.status.text).toBe('listening')
+  })
+
+  it('parses DeleteCustomStatusResponse with absent status', () => {
+    const parsed = DeleteCustomStatusResponseSchema.parse({})
+    expect(parsed.status).toBeUndefined()
   })
 })

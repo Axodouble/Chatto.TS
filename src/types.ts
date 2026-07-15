@@ -61,6 +61,32 @@ export interface RefreshOptions {
   intervalMs?: number
 }
 
+/** Friendly presence status accepted by client.setStatus(). */
+export type PresenceInput = 'online' | 'away' | 'dnd' | 'offline' | 'idle' | 'invisible'
+
+/** Input for client.setCustomStatus(). */
+export interface CustomStatusInput {
+  emoji: string
+  text: string
+  /** Optional future expiry; a Date is serialized to an ISO string. */
+  expiresAt?: Date | string
+}
+
+/** Custom status as stored/returned by the server. */
+export interface CustomStatus {
+  emoji: string
+  text: string
+  expiresAt?: string
+}
+
+/** Presence auto-refresh behavior. */
+export interface PresenceOptions {
+  /** Auto-refresh presence after setStatus. Default true. */
+  autoRefresh?: boolean
+  /** Heartbeat interval in ms. Default 30000. */
+  intervalMs?: number
+}
+
 export interface ChattoClientOptions {
   baseUrl: string
   token: string
@@ -68,6 +94,7 @@ export interface ChattoClientOptions {
   credentials?: { login: string; password: string }
   reconnect?: ReconnectOptions
   refresh?: RefreshOptions
+  presence?: PresenceOptions
 }
 
 export interface ClientEventMap {

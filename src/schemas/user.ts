@@ -33,3 +33,15 @@ export const DirectoryMemberSchema = z.object({
 export const GetUserResponseSchema = z.object({ user: DirectoryMemberSchema })
 export const BatchGetUsersResponseSchema = z.object({ users: z.array(DirectoryMemberSchema) })
 export const ListUsersResponseSchema = z.object({ users: z.array(DirectoryMemberSchema) })
+
+export const UpdatePresenceResponseSchema = z.object({
+  status: PresenceStatusSchema,
+})
+
+export const UpdateCustomStatusResponseSchema = z.object({
+  status: CustomUserStatusSchema,
+})
+
+export const DeleteCustomStatusResponseSchema = z.object({
+  status: CustomUserStatusSchema.optional(),
+})

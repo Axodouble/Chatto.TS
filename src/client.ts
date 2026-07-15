@@ -10,9 +10,10 @@ import type { MessageManager } from './managers/messages'
 import type { ThreadManager } from './managers/threads'
 import type { UserManager } from './managers/users'
 import type { AssetManager } from './managers/assets'
-import type { ChattoClientOptions, ClientEventMap, ReconnectOptions } from './types'
+import type { ChattoClientOptions, ClientEventMap, ReconnectOptions, PresenceInput, CustomStatusInput, CustomStatus } from './types'
 import type { ServerFrame } from './realtime/frames'
 import { ChattoAuthError } from './errors'
+import { normalizePresence } from './account/presence'
 
 
 export class ChattoClient extends EventEmitter<ClientEventMap> {
@@ -31,6 +32,9 @@ export class ChattoClient extends EventEmitter<ClientEventMap> {
   private refreshTimer: ReturnType<typeof setInterval> | null = null
   private closedByUser = false
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  private presenceTimer: ReturnType<typeof setInterval> | null = null
+  private currentPresence: string | null = null
+  private readonly presenceOpts: { autoRefresh: boolean; intervalMs: number }
 
   constructor(
     options: ChattoClientOptions,
@@ -44,6 +48,10 @@ export class ChattoClient extends EventEmitter<ClientEventMap> {
       maxDelayMs: options.reconnect?.maxDelayMs ?? 30000,
       factor: options.reconnect?.factor ?? 2,
       maxAttempts: options.reconnect?.maxAttempts ?? Infinity,
+    }
+    this.presenceOpts = {
+      autoRefresh: options.presence?.autoRefresh ?? true,
+      intervalMs: options.presence?.intervalMs ?? 30000,
     }
     const getToken = () => this.store.getToken()
     this.rest = new RestClient(
@@ -99,8 +107,61 @@ export class ChattoClient extends EventEmitter<ClientEventMap> {
       clearInterval(this.refreshTimer)
       this.refreshTimer = null
     }
+    this.teardownPresence()
     this.realtime.disconnect()
     this.emit('disconnect')
+  }
+
+  async setStatus(status: PresenceInput): Promise<PresenceInput> {
+    const normalized = normalizePresence(status)
+    if (normalized === 'OFFLINE') {
+      this.teardownPresence()
+      return status
+    }
+    this.currentPresence = normalized
+    await this.ctx.account.updatePresence(normalized, true)
+    // Re-check after the await: a disconnect() or terminal close may have torn
+    // presence down (and reset currentPresence to null) while we were waiting
+    // on the network. Starting a fresh heartbeat here would leak an interval
+    // that never gets cleared.
+    if (this.presenceOpts.autoRefresh && this.currentPresence === normalized) {
+      this.startPresenceHeartbeat()
+    }
+    return status
+  }
+
+  async setCustomStatus(input: CustomStatusInput): Promise<CustomStatus> {
+    return this.ctx.account.updateCustomStatus(input)
+  }
+
+  async clearCustomStatus(): Promise<void> {
+    await this.ctx.account.deleteCustomStatus()
+  }
+
+  private startPresenceHeartbeat(): void {
+    this.stopPresenceHeartbeat()
+    this.presenceTimer = setInterval(() => {
+      const status = this.currentPresence
+      if (status == null) return
+      this.ctx.account.updatePresence(status, true).catch(err => {
+        this.emit('error', err instanceof Error ? err : new Error(String(err)))
+      })
+    }, this.presenceOpts.intervalMs)
+  }
+
+  private stopPresenceHeartbeat(): void {
+    if (this.presenceTimer != null) {
+      clearInterval(this.presenceTimer)
+      this.presenceTimer = null
+    }
+  }
+
+  // Called from every terminal shutdown path (user disconnect(), clean/fatal
+  // close, auth close with no refreshable credentials, reconnect give-up)
+  // so the heartbeat can never keep firing after the client has given up.
+  private teardownPresence(): void {
+    this.stopPresenceHeartbeat()
+    this.currentPresence = null
   }
 
   private wireRealtime(): void {
@@ -134,10 +195,12 @@ export class ChattoClient extends EventEmitter<ClientEventMap> {
     this.realtime.on('close', (reason: CloseReason) => {
       if (this.closedByUser) return
       if (reason.kind === 'clean' || reason.kind === 'fatal') {
+        this.teardownPresence()
         this.emit('disconnect')
         return
       }
       if (reason.kind === 'auth' && !this.store.canRefresh()) {
+        this.teardownPresence()
         this.emit('error', new ChattoAuthError('no_credentials', 'Realtime auth failed and no credentials to refresh'))
         this.emit('disconnect')
         return
@@ -157,6 +220,7 @@ export class ChattoClient extends EventEmitter<ClientEventMap> {
   private attemptReconnect(reason: CloseReason): void {
     if (this.reconnectAttempt >= this.reconnectOpts.maxAttempts) {
       this.reconnecting = false
+      this.teardownPresence()
       this.emit('disconnect')
       return
     }
