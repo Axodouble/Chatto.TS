@@ -75,6 +75,56 @@ describe.if(hasCreds)('live integration', () => {
     }
   })
 
+  it('sets presence and custom status, then reads them back and clears', async () => {
+    const client = await ChattoClient.login({ baseUrl: baseUrl!, login: login!, password: password! })
+
+    // Resolve our own directory row so we can read back what the server stored.
+    // Throws loudly rather than silently checking the wrong user.
+    const findSelf = async () => {
+      const users = await client.users.list()
+      const me = users.find(u => u.login.toLowerCase() === login!.toLowerCase())
+      if (me == null) throw new Error(`could not find own user '${login}' in the directory`)
+      return me
+    }
+
+    // Presence reads come from a TTL-backed live store, so tolerate a little
+    // propagation lag before asserting.
+    const waitForSelf = async (predicate: (u: Awaited<ReturnType<typeof findSelf>>) => boolean) => {
+      let self = await findSelf()
+      for (let i = 0; i < 10 && !predicate(self); i++) {
+        await Bun.sleep(500)
+        self = await findSelf()
+      }
+      return self
+    }
+
+    try {
+      // Presence: setStatus returns the friendly input; the server should
+      // reflect the mapped enum on our directory row.
+      const returned = await client.setStatus('dnd')
+      expect(returned).toBe('dnd')
+      const withPresence = await waitForSelf(u => u.presenceStatus === 'PRESENCE_STATUS_DO_NOT_DISTURB')
+      expect(withPresence.presenceStatus).toBe('PRESENCE_STATUS_DO_NOT_DISTURB')
+
+      // Custom status: the returned value is the server-normalized echo.
+      const custom = await client.setCustomStatus({ emoji: '🧪', text: 'chatto.ts live test' })
+      expect(custom.emoji).toBe('🧪')
+      expect(custom.text).toBe('chatto.ts live test')
+      const withCustom = await waitForSelf(u => u.customStatus != null)
+      expect(withCustom.customStatus?.text).toBe('chatto.ts live test')
+
+      // Clear it — idempotent, should not throw, and the row should drop it.
+      await client.clearCustomStatus()
+      const cleared = await waitForSelf(u => u.customStatus == null)
+      expect(cleared.customStatus).toBeUndefined()
+
+      // 'offline' sends no RPC; it just stops the presence heartbeat locally.
+      await client.setStatus('offline')
+    } finally {
+      await client.disconnect()
+    }
+  }, 30000)
+
   it.if(Boolean(testRoom))('sends and replies, with eager author/channel populated', async () => {
     const client = await ChattoClient.login({ baseUrl: baseUrl!, login: login!, password: password! })
     const room = await client.rooms.fetch(testRoom!)
