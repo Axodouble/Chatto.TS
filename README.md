@@ -88,7 +88,7 @@ client.on('messageCreate', message => {
 })
 ```
 
-## Setting your status
+### Setting your status
 
 Presence is transient — the client refreshes it automatically every 30s while set.
 
