@@ -5,8 +5,8 @@
     "": {
       "name": "chatto.ts",
       "dependencies": {
-        "protobufjs": "^8.7.0",
-        "ws": "^8.21.0",
+        "protobufjs": "^8.7.1",
+        "ws": "^8.21.1",
         "zod": "^4.4.3",
       },
       "devDependencies": {
