@@ -3,17 +3,17 @@
   "version": "0.4.11",
   "description": "TypeScript SDK for Chatto",
   "author": {
-    "name": "Axodouble",
-    "email": "axodouble@axodouble.com",
-    "url": "https://axodouble.com"
+    "name": "Jasper V",
+    "email": "jasper@jas.pe",
+    "url": "https://jas.pe"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Axodouble/chatto.ts.git"
+    "url": "git+https://github.com/vrepsaj/chatto.ts.git"
   },
-  "homepage": "https://github.com/Axodouble/chatto.ts#readme",
+  "homepage": "https://github.com/vrepsaj/chatto.ts#readme",
   "bugs": {
-    "url": "https://github.com/Axodouble/chatto.ts/issues"
+    "url": "https://github.com/vrepsaj/chatto.ts/issues"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

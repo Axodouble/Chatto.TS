@@ -1,11 +1,5 @@
-# Security Policy
+# Security
+If you have any security concerns, vulnerability disclosures or anything else that needs urgent attention, please mail me at [security@jas.pe](mailto:security@jas.pe)
+I take any and all security concerns seriously, and I will respond promptly to your report.
 
-## Reporting a Vulnerability
-
-If you discover a security vulnerability, please send an email to [axodouble@axodouble.com](mailto:axodouble@axodouble.com), using [my pgp key](https://axodouble.com/.well-known/pgp-key.txt), fingerprint `D0C1 A4C3 40BF 2222 2222`. We take all security concerns seriously and will respond promptly to your report.
-
-## Security Concerns
-
-For any other security-related concerns or questions, please contact us at [axodouble@axodouble.com](mailto:axodouble@axodouble.com), using [my pgp key](https://axodouble.com/.well-known/pgp-key.txt), fingerprint `D0C1 A4C3 40BF 2222 2222`.
-
-Thank you for helping us keep our project secure.
+[Please use my pgp-key](https://jas.pe/.well-known/pgp-key.txt), fingerprint `8F49C170420FADED` to encrypt any messages, emails or other means of communication when disclosing vulnerabilities, or any other sensitive information.
